@@ -16,5 +16,5 @@ public class CouponsController {
 
     @Autowired
     private UserRepository userRepository;
-    
+
 }
