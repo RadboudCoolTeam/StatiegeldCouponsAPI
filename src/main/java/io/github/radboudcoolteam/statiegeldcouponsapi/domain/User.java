@@ -21,6 +21,7 @@ public class User {
     @Setter
     private long id;
 
+    @Setter
     private String name;
 
     private String email;

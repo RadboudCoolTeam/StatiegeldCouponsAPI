@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import java.util.UUID;
 
 @Getter
 @AllArgsConstructor
@@ -17,7 +18,7 @@ import javax.persistence.Id;
 public class Coupon {
 
     @Setter
-    public long id;
+    public UUID localId;
 
     private String date;
 
@@ -33,15 +34,15 @@ public class Coupon {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Setter
-    private long databaseId;
+    private long id;
 
     public void update(Coupon coupon) {
-        this.id = coupon.id;
+        this.localId = coupon.localId;
         this.date = coupon.date;
         this.money = coupon.money;
         this.barcode = coupon.barcode;
         this.supermarketChain = coupon.supermarketChain;
         this.userId = coupon.userId;
-        this.databaseId = coupon.databaseId;
+        this.id = coupon.id;
     }
 }

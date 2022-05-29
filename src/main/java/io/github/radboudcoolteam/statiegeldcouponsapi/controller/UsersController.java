@@ -48,14 +48,14 @@ public class UsersController {
         newCouponId = couponRepository
                 .findAll()
                 .stream()
-                .map(Coupon::getDatabaseId)
+                .map(Coupon::getId)
                 .sorted()
                 .limit(1)
                 .findAny()
                 .orElse(0L) + 1;
     }
 
-    public boolean authoriseUser(User user) {
+    private boolean authoriseAPIUser(User user) {
         if (validateUser(user)) {
             try {
                 if (userExists(user)) {
@@ -93,10 +93,10 @@ public class UsersController {
         }
     }
 
-    @GetMapping("/{id}/coupons")
+    @PostMapping("/{id}/coupons")
     public ResponseEntity<List<Coupon>> getUserCoupons(@PathVariable Long id, @RequestBody User user) {
 
-        if (!authoriseUser(user) || user.getId() != id) {
+        if (!authoriseAPIUser(user) || user.getId() != id) {
             return ResponseEntity.badRequest()
                     .build();
         }
@@ -114,73 +114,60 @@ public class UsersController {
     }
 
     @PostMapping("{id}/updateCoupon")
-    public ResponseEntity<String> updateCoupon(@PathVariable Long id, @RequestBody Pair<User, Coupon> pair) {
+    public ResponseEntity<Coupon> updateCoupon(@PathVariable Long id, @RequestBody Pair<User, Coupon> pair) {
 
         User user = pair.first;
         Coupon coupon = pair.second;
 
-        if (!authoriseUser(user) || user.getId() != id) {
+        if (!authoriseAPIUser(user) || user.getId() != id) {
             return ResponseEntity.badRequest()
                     .build();
         }
 
-        if (coupon.getUserId() == NEW_COUPON && coupon.getDatabaseId() == NEW_COUPON) {
-            coupon.setDatabaseId(newCouponId++);
+        if (coupon.getUserId() == NEW_COUPON && coupon.getId() == NEW_COUPON) {
+            coupon.setId(newCouponId++);
             coupon.setUserId(user.getId());
 
-            couponRepository.save(coupon);
+            Coupon couponInDb = couponRepository.save(coupon);
 
-            return ResponseEntity.accepted().body("OK");
+            return ResponseEntity.accepted().body(couponInDb);
         } else {
             if (coupon.getUserId() == user.getId()) {
-                Coupon couponInDb = couponRepository.findCouponById(coupon.getDatabaseId());
+                Coupon couponInDb = couponRepository.findCouponById(coupon.getId());
                 if (couponInDb != null) {
                     couponInDb.update(coupon);
-                    couponRepository.save(coupon);
+                    couponRepository.save(couponInDb);
 
-                    return ResponseEntity.accepted().body("OK");
+                    return ResponseEntity.accepted().body(couponInDb);
                 }
+            }
+        }
+
+        return ResponseEntity.badRequest().body(null);
+    }
+
+    @PostMapping("{id}/delete")
+    public ResponseEntity<String> deleteCoupon(@PathVariable long id, @RequestBody Pair<User, Coupon> pair) {
+        User user = pair.first;
+        Coupon coupon = pair.second;
+
+        if (!authoriseAPIUser(user) || user.getId() != id) {
+            return ResponseEntity.badRequest()
+                    .build();
+        }
+
+        if (coupon.getUserId() == user.getId()) {
+            Coupon couponInDb = couponRepository.findCouponById(coupon.getId());
+            if (couponInDb != null) {
+                couponRepository.delete(couponInDb);
+
+                return ResponseEntity.accepted().body("OK");
             }
         }
 
         return ResponseEntity.badRequest().body("Unable to update!");
     }
 
-    @PostMapping("{id}/updateCoupons")
-    public ResponseEntity<String> updateCoupons(@PathVariable Long id, @RequestBody User user, @RequestBody List<Coupon> coupons) {
-        if (!authoriseUser(user) || user.getId() != id) {
-            return ResponseEntity.badRequest()
-                    .build();
-        }
-
-        int updated = 0;
-
-        for (Coupon coupon : coupons) {
-
-            if (coupon.getUserId() == NEW_COUPON && coupon.getDatabaseId() == NEW_COUPON) {
-                coupon.setDatabaseId(newCouponId++);
-                coupon.setUserId(user.getId());
-
-                couponRepository.save(coupon);
-
-                updated++;
-            } else {
-                if (coupon.getUserId() == user.getId()) {
-                    Coupon couponInDb = couponRepository.findCouponById(coupon.getDatabaseId());
-                    if (couponInDb != null) {
-                        couponInDb.update(coupon);
-                        couponRepository.save(coupon);
-
-                        updated++;
-                    }
-                }
-            }
-        }
-
-        return updated == coupons.size() ?
-                ResponseEntity.accepted().body("OK") :
-                ResponseEntity.badRequest().body("Unable to update!");
-    }
 
     public boolean userExists(User user) {
         return userRepository.getUserByEmail(user.getEmail()).size() > 0;
@@ -192,13 +179,12 @@ public class UsersController {
                 user.getEmail() != null &&
                 !user.getPassword().equals("") &&
                 !user.getName().equals("") &&
-                EmailValidator.getInstance().isValid(user.getEmail()) &&
-                !userExists(user);
+                EmailValidator.getInstance().isValid(user.getEmail());
     }
 
     @PostMapping("/new")
     public ResponseEntity<String> createUser(@RequestBody User user) {
-        if (validateUser(user)) {
+        if (validateUser(user) && !userExists(user)) {
             try {
 
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -210,15 +196,34 @@ public class UsersController {
 
                 user.setId(newUserId++);
 
-                userRepository.save(user);
+                User userInDb = userRepository.save(user);
 
                 return ResponseEntity.accepted()
-                        .body("OK");
+                        .body(String.valueOf(userInDb.getId()));
             } catch (NoSuchAlgorithmException e) {
                 return ResponseEntity.badRequest().body("Failed to create user!");
             }
         } else {
             return ResponseEntity.badRequest().body("Failed to create user!");
         }
+    }
+
+    @PostMapping("/auth")
+    public ResponseEntity<User> authorizeUser(@RequestBody User user) {
+        if (validateUser(user) && userExists(user) && authoriseAPIUser(user)) {
+
+            User userInDb = userRepository.getUserByEmail(user.getEmail()).get(0);
+
+            long id = userInDb.getId();
+
+            String name = userInDb.getName();
+
+            user.setId(id);
+            user.setName(name);
+
+            return ResponseEntity.accepted().body(user);
+        }
+
+        return ResponseEntity.badRequest().build();
     }
 }
