@@ -1,9 +1,11 @@
 package io.github.radboudcoolteam.statiegeldcouponsapi.controller;
 
 import io.github.radboudcoolteam.statiegeldcouponsapi.domain.Coupon;
+import io.github.radboudcoolteam.statiegeldcouponsapi.domain.Image;
 import io.github.radboudcoolteam.statiegeldcouponsapi.domain.Pair;
 import io.github.radboudcoolteam.statiegeldcouponsapi.domain.User;
 import io.github.radboudcoolteam.statiegeldcouponsapi.repo.CouponRepository;
+import io.github.radboudcoolteam.statiegeldcouponsapi.repo.ImagesRepo;
 import io.github.radboudcoolteam.statiegeldcouponsapi.repo.UserRepository;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,8 @@ public class UsersController {
 
     private long newCouponId;
 
+    private long newImageId;
+
     private final int NEW_COUPON = 0;
 
     @Autowired
@@ -34,9 +38,13 @@ public class UsersController {
     private CouponRepository couponRepository;
 
     @Autowired
-    public UsersController(UserRepository userRepository, CouponRepository couponRepository) {
+    private ImagesRepo imageRepository;
+
+    @Autowired
+    public UsersController(UserRepository userRepository, CouponRepository couponRepository, ImagesRepo imageRepository) {
         this.userRepository = userRepository;
         this.couponRepository = couponRepository;
+        this.imageRepository = imageRepository;
         newUserId = userRepository
                 .findAll()
                 .stream()
@@ -45,10 +53,20 @@ public class UsersController {
                 .limit(1)
                 .findAny()
                 .orElse(0L) + 1;
+
         newCouponId = couponRepository
                 .findAll()
                 .stream()
                 .map(Coupon::getId)
+                .sorted()
+                .limit(1)
+                .findAny()
+                .orElse(0L) + 1;
+
+        newImageId = imageRepository
+                .findAll()
+                .stream()
+                .map(Image::getId)
                 .sorted()
                 .limit(1)
                 .findAny()
@@ -183,9 +201,17 @@ public class UsersController {
     }
 
     @PostMapping("/new")
-    public ResponseEntity<String> createUser(@RequestBody User user) {
+    public ResponseEntity<String> createUser(@RequestBody Pair<User, Image> pair) {
+
+        User user = pair.first;
+
+        Image image = pair.second;
+
         if (validateUser(user) && !userExists(user)) {
             try {
+
+                image.setId(newImageId++);
+                imageRepository.save(image);
 
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
@@ -195,7 +221,7 @@ public class UsersController {
                 user.setPasswordHash(hash);
 
                 user.setId(newUserId++);
-
+                user.setImageId(image.getId());
                 User userInDb = userRepository.save(user);
 
                 return ResponseEntity.accepted()

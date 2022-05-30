@@ -1,39 +1,33 @@
 package io.github.radboudcoolteam.statiegeldcouponsapi.domain;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import java.util.UUID;
 
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collection = "user")
-public class User {
-
+@Document(collection = "image")
+public class Image {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Setter
     private long id;
 
-    @Setter
-    private String name;
+    @Column(name = "width")
+    private Long width;
 
-    private String email;
+    @Column(name = "height")
+    private Long height;
 
-    @Setter
-    private String password;
-
-    @Setter
-    private String passwordHash;
-
-    @Setter
-    private long imageId;
-
+    @Column(name = "data", length = 26214400)
+    private byte[] data;
 }
