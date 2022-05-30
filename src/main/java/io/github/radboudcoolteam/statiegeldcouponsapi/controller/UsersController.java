@@ -131,6 +131,23 @@ public class UsersController {
         }
     }
 
+    @PostMapping("/{id}/avatar")
+    public ResponseEntity<Image> getUserAvatar(@PathVariable Long id, @RequestBody User user) {
+
+        if (!authoriseAPIUser(user) || user.getId() != id) {
+            return ResponseEntity.badRequest()
+                    .build();
+        }
+
+        if (userRepository.existsById(id)) {
+            return ResponseEntity.accepted()
+                    .body(imageRepository.getImageById(user.getImageId()));
+        } else {
+            return ResponseEntity.notFound()
+                    .build();
+        }
+    }
+
     @PostMapping("{id}/updateCoupon")
     public ResponseEntity<Coupon> updateCoupon(@PathVariable Long id, @RequestBody Pair<User, Coupon> pair) {
 
