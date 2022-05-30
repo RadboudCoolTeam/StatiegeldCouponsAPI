@@ -23,10 +23,10 @@ public class Image {
     private long id;
 
     @Column(name = "width")
-    private Long width;
+    private long width;
 
     @Column(name = "height")
-    private Long height;
+    private long height;
 
     @Column(name = "data", length = 26214400)
     private byte[] data;
