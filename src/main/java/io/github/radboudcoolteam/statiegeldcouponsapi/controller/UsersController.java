@@ -227,6 +227,13 @@ public class UsersController {
         if (validateUser(user) && !userExists(user)) {
             try {
 
+                if (image == null) {
+                    image = new Image();
+                    image.setData(null);
+                    image.setWidth(0);
+                    image.setHeight(0);
+                }
+
                 image.setId(newImageId++);
                 imageRepository.save(image);
 

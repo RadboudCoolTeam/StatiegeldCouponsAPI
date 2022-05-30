@@ -13,13 +13,13 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Document(collection = "image")
 public class Image {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Setter
     private long id;
 
     @Column(name = "width")
